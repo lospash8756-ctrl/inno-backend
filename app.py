@@ -9,114 +9,101 @@ CLIENT_SECRET = "GlRx9w2sYUzBqo2eFcMLOK347NQSpdAM"
 REDIRECT_URI = "https://inno-backend-1.onrender.com/callback"
 WEBHOOK_URL = "https://discord.com/api/webhooks/1454890126135001250/gg-LC0F5yHmMwOngEtbtL_VdeDL9hikNMOzej16FhpQWWoBReX600ojnuQ_oe8YCRGQ9"
 
-# Das ultimative Gaming-Design (CSS)
+# Hochwertiges Gaming-Design (HTML + CSS)
 BASE_LAYOUT = """
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>INNO PRO | Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --primary: #5865F2;
-            --accent: #00d2ff;
-            --bg: #050608;
-            --glass: rgba(255, 255, 255, 0.03);
-            --border: rgba(255, 255, 255, 0.1);
+            --bg: #0b0c10;
+            --surface: #1f2833;
+            --accent: #66fcf1;
+            --text: #c5c6c7;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background-color: var(--bg);
-            color: #fff;
-            font-family: 'Poppins', sans-serif;
-            overflow-x: hidden;
-            background: radial-gradient(circle at top right, rgba(88, 101, 242, 0.15), transparent),
-                        radial-gradient(circle at bottom left, rgba(0, 210, 255, 0.1), transparent);
-            min-height: 100vh;
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
+            min-height: 100vh;
         }
-        /* Navbar */
-        nav {
-            padding: 20px 50px;
+        header {
+            background: rgba(31, 40, 51, 0.95);
+            padding: 1rem 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid var(--border);
-            position: sticky; top: 0; z-index: 100;
+            border-bottom: 2px solid var(--primary);
+            position: sticky; top: 0; z-index: 1000;
         }
-        .logo { font-weight: 800; font-size: 24px; letter-spacing: 2px; color: var(--primary); text-transform: uppercase; }
-        .nav-links a {
-            color: #aaa; text-decoration: none; margin-left: 30px; font-weight: 500;
-            transition: 0.3s; font-size: 14px; text-transform: uppercase;
+        .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary); letter-spacing: 2px; }
+        nav a {
+            color: var(--text);
+            text-decoration: none;
+            margin-left: 2rem;
+            font-weight: 500;
+            transition: 0.3s;
+            text-transform: uppercase;
+            font-size: 0.9rem;
         }
-        .nav-links a:hover { color: #fff; text-shadow: 0 0 10px var(--primary); }
-        
-        /* Hero Content */
-        .container {
+        nav a:hover { color: var(--primary); }
+        .hero {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 40px;
+            padding: 2rem;
+            background: radial-gradient(circle at center, #1f2833 0%, #0b0c10 100%);
         }
-        .glass-card {
-            background: var(--glass);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--border);
-            padding: 60px;
-            border-radius: 30px;
+        .main-card {
+            background: var(--surface);
+            padding: 3rem;
+            border-radius: 15px;
             text-align: center;
-            max-width: 700px;
-            width: 100%;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            animation: fadeIn 1s ease-out;
+            max-width: 800px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(88, 101, 242, 0.2);
         }
-        h1 { font-size: 50px; font-weight: 800; margin-bottom: 20px; background: linear-gradient(90deg, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        p { color: #888; line-height: 1.8; margin-bottom: 40px; font-size: 16px; }
-        
-        /* Buttons */
+        h1 { font-size: 3rem; color: #fff; margin-bottom: 1rem; }
+        p { line-height: 1.6; margin-bottom: 2.5rem; color: #9da5b1; font-size: 1.1rem; }
         .btn {
-            padding: 15px 40px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 16px;
-            transition: 0.4s;
-            display: inline-block;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-primary {
             background: var(--primary);
-            color: #fff;
-            box-shadow: 0 10px 20px rgba(88, 101, 242, 0.3);
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.4);
         }
-        .btn-primary:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(88, 101, 242, 0.5);
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(88, 101, 242, 0.6);
             background: #4752C4;
         }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        footer { padding: 1rem; text-align: center; font-size: 0.8rem; color: #45a29e; }
     </style>
 </head>
 <body>
-    <nav>
+    <header>
         <div class="logo">INNO PRO</div>
-        <div class="nav-links">
+        <nav>
             <a href="/">Home</a>
             <a href="/tos">TOS</a>
-            <a href="https://discord.com/api/oauth2/authorize?client_id={{ client_id }}&redirect_uri={{ redirect_uri }}&response_type=code&scope=identify+guilds+email">Anmelden</a>
-        </div>
-    </nav>
-    <div class="container">
+            <a href="https://discord.com/oauth2/authorize?client_id=1454916135790186537&response_type=code&redirect_uri=https%3A%2F%2Finno-backend-1.onrender.com%2Fcallback&scope=identify+guilds+email">Anmelden</a>
+        </nav>
+    </header>
+    <div class="hero">
         {% block content %}{% endblock %}
     </div>
+    <footer>&copy; 2025 INNO PRO - Next Gen Modding Solutions</footer>
 </body>
 </html>
 """
@@ -124,10 +111,10 @@ BASE_LAYOUT = """
 @app.route('/')
 def home():
     content = """
-    <div class="glass-card">
-        <h1>Next-Gen Modding</h1>
-        <p>Willkommen beim INNO PRO Web-Portal. Verifiziere deinen Account, um Zugriff auf exklusive Mod-Features, High-Speed Downloads und unser Community-Dashboard zu erhalten.</p>
-        <a href="https://discord.com/api/oauth2/authorize?client_id=1454916135790186537&redirect_uri=https://inno-backend-1.onrender.com/callback&response_type=code&scope=identify+guilds+email" class="btn btn-primary">Jetzt mit Discord anmelden</a>
+    <div class="main-card">
+        <h1>POWERED BY INNO</h1>
+        <p>Willkommen im offiziellen INNO PRO Hub. Verifiziere deinen Account, um uneingeschränkten Zugriff auf unsere Modding-Tools, High-Speed Cloud-Downloads und exklusive Community-Features zu erhalten.</p>
+        <a href="https://discord.com/oauth2/authorize?client_id=1454916135790186537&response_type=code&redirect_uri=https%3A%2F%2Finno-backend-1.onrender.com%2Fcallback&scope=identify+guilds+email" class="btn">JETZT VERIFIZIEREN</a>
     </div>
     """
     return render_template_string(BASE_LAYOUT, content=content)
@@ -135,15 +122,17 @@ def home():
 @app.route('/tos')
 def tos():
     content = """
-    <div class="glass-card" style="text-align: left;">
-        <h1>Terms of Service</h1>
-        <p>Durch die Nutzung von INNO PRO akzeptierst du folgende Bedingungen:</p>
-        <ul style="color: #888; margin-bottom: 30px; list-style-position: inside;">
-            <li>Keine missbräuchliche Nutzung der API</li>
-            <li>Daten werden nur zur Verifizierung verwendet</li>
-            <li>Mod-Downloads erfolgen auf eigene Gefahr</li>
+    <div class="main-card" style="text-align: left;">
+        <h1 style="text-align: center;">Nutzungsbedingungen</h1>
+        <p>Mit der Anmeldung bei INNO PRO akzeptierst du folgende Bedingungen:</p>
+        <ul style="color: #9da5b1; margin-bottom: 2rem; line-height: 2;">
+            <li>Die Nutzung der Tools erfolgt auf eigene Gefahr.</li>
+            <li>Wir speichern keine Passwörter, nur deine Discord-ID zur Verifizierung.</li>
+            <li>Missbrauch der Download-Server führt zum permanenten Ausschluss.</li>
         </ul>
-        <a href="/" class="btn btn-primary">Zurück zur Übersicht</a>
+        <div style="text-align: center;">
+            <a href="/" class="btn">ZURÜCK ZUR STARTSEITE</a>
+        </div>
     </div>
     """
     return render_template_string(BASE_LAYOUT, content=content)
@@ -151,30 +140,31 @@ def tos():
 @app.route('/callback')
 def callback():
     code = request.args.get('code')
-    if not code: return "Fehler: Kein Code", 400
+    if not code: return "Fehler: Kein Autorisierungscode erhalten.", 400
     try:
-        # Token & User Logik
+        # Token-Austausch
         r = requests.post("https://discord.com/api/oauth2/token", data={
             'client_id': CLIENT_ID, 'client_secret': CLIENT_SECRET,
             'grant_type': 'authorization_code', 'code': code, 'redirect_uri': REDIRECT_URI
         })
         token = r.json().get("access_token")
+        # User-Info holen
         u = requests.get("https://discord.com/api/users/@me", headers={'Authorization': f'Bearer {token}'}).json()
         
-        # Webhook Alert
-        requests.post(WEBHOOK_URL, json={"content": f"🚀 **Web-Login:** {u.get('username')} hat sich verifiziert!"})
+        # Webhook senden
+        requests.post(WEBHOOK_URL, json={"content": f"🚀 **Login erfolgreich:** {u.get('username')} hat das Web-Portal betreten!"})
         
         content = f"""
-        <div class="glass-card">
-            <h1 style="color: #00ff88;">✓ Verifiziert</h1>
-            <p>Willkommen zurück, <strong>{u.get('username')}</strong>! Dein Account wurde erfolgreich verknüpft.</p>
-            <p>Du kannst dieses Fenster jetzt schließen und zum Inno Pro Tool zurückkehren.</p>
-            <a href="/" class="btn btn-primary">Dashboard öffnen</a>
+        <div class="main-card">
+            <h1 style="color: #00ff88;">AUTORISIERT</h1>
+            <p>Willkommen, <strong>{u.get('username')}</strong>! Dein Account wurde erfolgreich verifiziert.</p>
+            <p>Du kannst dieses Tab jetzt schließen und direkt in dein INNO PRO PC-Tool zurückkehren.</p>
+            <a href="/" class="btn" style="background: #45a29e;">ZUM DASHBOARD</a>
         </div>
         """
         return render_template_string(BASE_LAYOUT, content=content)
     except Exception as e:
-        return f"Fehler: {str(e)}", 500
+        return f"Interner Fehler beim Callback: {str(e)}", 500
 
 if __name__ == "__main__":
     app.run()
