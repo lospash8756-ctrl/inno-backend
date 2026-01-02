@@ -3,7 +3,7 @@ from flask import Flask, render_template_string, request
 
 app = Flask(__name__)
 
-# --- DEIN GENAUES DESIGN (Bild 1 Nachbau) ---
+# Das HTML ist exakt deinem Screenshot nachempfunden
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="de">
@@ -25,72 +25,81 @@ HTML_PAGE = """
         }
 
         .card {
-            background-color: #1f1f1f;
+            background-color: #2b2b2b; /* Dunkelgrau wie im Bild */
             padding: 30px;
             border-radius: 8px;
             width: 90%;
             max-width: 400px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
         }
 
         h1 { 
-            text-align: center; 
-            font-size: 22px; 
-            margin-bottom: 10px; 
+            font-size: 24px; 
+            margin-bottom: 5px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
             gap: 10px;
+            color: #fff;
         }
 
         .status-line {
-            text-align: center;
             color: #888;
             font-size: 14px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
         }
         .status-green { color: #4CAF50; font-weight: bold; }
 
+        /* Das weiße Eingabefeld */
         input {
             width: 100%;
-            padding: 12px;
-            background-color: #ebf5ff; /* Helles Blau wie im Bild */
+            padding: 15px;
+            background-color: #ebf5ff; 
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             font-size: 16px;
             color: #000;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             box-sizing: border-box;
             outline: none;
+            font-weight: 500;
         }
 
+        /* Der graue Button */
         .btn {
             width: 100%;
             padding: 15px;
-            background-color: #555; /* Grau wie im Bild */
+            background-color: #4a4a4a;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 5px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
+            margin-bottom: 20px;
         }
-        .btn:hover { background-color: #666; }
-        .btn-green { background-color: #4CAF50; }
-        .btn-green:hover { background-color: #45a049; }
+        .btn:hover { background-color: #5a5a5a; }
+        
+        /* Wenn bereit zum Verbinden */
+        .btn-green { 
+            background-color: #4CAF50 !important; 
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+        .btn-green:hover { background-color: #45a049 !important; }
 
-        .console {
-            margin-top: 20px;
-            background-color: #161616;
+        .console-box {
+            background-color: #1a1a1a;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 5px;
+            text-align: left;
             font-family: monospace;
             font-size: 13px;
-            color: #888;
-            min-height: 50px;
+            color: #666;
+            min-height: 40px;
         }
-        .log-entry { margin-bottom: 5px; }
+        .log-entry { margin-bottom: 3px; }
     </style>
 </head>
 <body>
@@ -99,60 +108,57 @@ HTML_PAGE = """
     <h1>🔊 Bedrock Voice Web</h1>
     <div class="status-line">Status: <span class="status-green">Online ✅</span></div>
 
-    <div id="login-ui">
-        <input type="text" id="username" placeholder="Dein Name" value="" readonly>
-        <button class="btn" id="main-btn" onclick="startProcess()">Prüfe Server...</button>
-    </div>
+    <input type="text" id="username" placeholder="Dein Minecraft Name" readonly>
+    
+    <button class="btn" id="action-btn" onclick="startCheck()">Prüfe Server...</button>
 
-    <div class="console" id="console">
+    <div class="console-box" id="console">
         <div class="log-entry">> Warte auf Eingabe...</div>
     </div>
 </div>
 
 <script>
-    // Holt den Token und Namen aus der URL (die vom Plugin kommt)
+    // 1. Wir holen uns den Token aus der URL, den das Plugin gesendet hat
     const params = new URLSearchParams(window.location.search);
-    const userParam = params.get('user') || "Spieler"; 
-    
-    // Setzt den Namen ins Feld (falls vorhanden)
-    document.getElementById('username').value = userParam;
+    // Wir versuchen den Namen aus dem Token zu erraten oder nehmen "Spieler"
+    // (OpenAudio sendet den Namen nicht direkt im Klartext, aber das ist egal)
+    document.getElementById('username').value = "Minecraft Spieler";
 
     function log(text) {
-        const consoleDiv = document.getElementById('console');
-        consoleDiv.innerHTML += `<div class="log-entry">> ${text}</div>`;
+        document.getElementById('console').innerHTML += `<div class="log-entry">> ${text}</div>`;
     }
 
-    function startProcess() {
-        const btn = document.getElementById('main-btn');
+    function startCheck() {
+        const btn = document.getElementById('action-btn');
         btn.disabled = true;
-        btn.style.backgroundColor = "#333";
+        log("Verbinde zu Aternos...");
         
-        log("Prüfe, ob " + document.getElementById('username').value + " online ist...");
-        
-        // Fake-Ladezeit für den Effekt
+        // Fake-Ladezeit für den Effekt (sieht professionell aus)
         setTimeout(() => {
-            log("Verbindung hergestellt!");
-            log("Authentifizierung erfolgreich.");
+            log("Server gefunden!");
+            log("Authentifiziere Token...");
             
-            // Jetzt ändern wir den Button zum "Start" Button
-            btn.innerText = "🔊 Voice Chat Beitreten";
-            btn.classList.add('btn-green');
-            btn.disabled = false;
-            
-            // Wenn man JETZT klickt, geht es zum echten Audio
-            btn.onclick = function() {
-                log("Leite weiter zur Audio-Engine...");
-                const currentParams = window.location.search;
-                // Hier ist der Trick: Wir leiten erst jetzt weiter
-                window.location.href = "https://client.openaudiomc.net/" + currentParams;
-            };
-        }, 1500);
+            setTimeout(() => {
+                // JETZT ist alles bereit. Wir ändern den Button.
+                btn.innerText = "🔊 Voice Chat Starten";
+                btn.className = "btn btn-green"; // Wird grün
+                btn.disabled = false;
+                
+                // Beim nächsten Klick geht es zur Audio-Engine
+                btn.onclick = function() {
+                    btn.innerText = "Verbinde...";
+                    // Wir leiten weiter an die offizielle Engine, hängen aber DEINEN Token an
+                    // Damit weiß OpenAudio, wer du bist.
+                    window.location.href = "https://client.openaudiomc.net/" + window.location.search;
+                };
+            }, 800);
+        }, 800);
     }
-
-    // Automatischer Start wenn Parameter da sind (optional, wirkt flüssiger)
-    if(params.has('token')) {
-        document.getElementById('username').value = "Lospash User"; // Oder Name aus Token parsen wenn möglich
-        // Wir warten kurz, damit der User deine Seite sieht
+    
+    // Kleiner Auto-Start, wenn ein Token da ist
+    if(params.has('token') || params.has('session')) {
+        // Optional: Automatisch prüfen starten
+        // startCheck(); 
     }
 </script>
 
