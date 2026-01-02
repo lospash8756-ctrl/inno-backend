@@ -1,57 +1,92 @@
 import os
 from flask import Flask, render_template_string, request
 from flask_socketio import SocketIO, emit
+from mcstatus import JavaServer
 
-# Flask Setup
+# --- KONFIGURATION ---
+# Deine Aternos Adresse
+MC_HOST = "MinecraftLospashW.aternos.me"
+# Der Port (Standard ist 25565, bei Aternos oft dynamisch, hier dein Port)
+MC_PORT = 42486 
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'geheim')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'geheim123')
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# --- HIER IST DEIN HTML CODE DIREKT IN PYTHON ---
+# --- HTML FRONTEND (Direkt im Code) ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Voice Chat Login</title>
+    <title>Voice Chat Web</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
-        body { background-color: #121212; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .container { background-color: #1e1e1e; padding: 40px; border-radius: 15px; text-align: center; width: 90%; max-width: 400px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #333; background-color: #2c2c2c; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; margin-top: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
+        body { background-color: #1a1a1a; color: #ddd; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .box { background-color: #2b2b2b; padding: 30px; border-radius: 12px; text-align: center; width: 90%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+        h2 { color: #fff; margin-bottom: 5px; }
+        p { color: #aaa; font-size: 0.9em; margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 6px; border: 1px solid #444; background-color: #333; color: white; box-sizing: border-box; outline: none; transition: 0.3s; }
+        input:focus { border-color: #4CAF50; }
+        button { width: 100%; padding: 12px; margin-top: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.3s; }
         button:hover { background-color: #45a049; }
-        .log-area { margin-top: 20px; background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; color: #0f0; text-align: left; height: 100px; overflow-y: auto; }
+        button:disabled { background-color: #555; cursor: wait; }
+        .log { margin-top: 20px; text-align: left; font-size: 0.85em; color: #888; max-height: 100px; overflow-y: auto; background: #222; padding: 10px; border-radius: 4px; }
+        .success { color: #4CAF50; font-weight: bold; }
+        .error { color: #ff5252; font-weight: bold; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h2>🔊 Voice Chat Login</h2>
-    <p>Server: MinecraftLospashW.aternos.me</p>
-    <input type="text" id="username" placeholder="Dein Minecraft Username">
-    <button id="btn-connect" onclick="connect()">Verbinden</button>
-    <div id="status-text" style="margin-top:20px;">Bereit...</div>
-    <div class="log-area" id="log"></div>
-</div>
-<script>
-    var socket = io();
-    function log(msg) { var d = document.getElementById('log'); d.innerHTML += "<div>> " + msg + "</div>"; d.scrollTop = d.scrollHeight; }
+<div class="box">
+    <h2>🔊 Bedrock Voice Web</h2>
+    <p>Status: <span id="server-status">Prüfe...</span></p>
     
-    socket.on('server_message', function(data) {
-        log(data.msg);
+    <input type="text" id="username" placeholder="Dein Minecraft Name">
+    <button id="btn" onclick="connect()">Beitreten</button>
+    
+    <div class="log" id="log">Warte auf Eingabe...</div>
+</div>
+
+<script>
+    const socket = io();
+    const btn = document.getElementById('btn');
+    const logDiv = document.getElementById('log');
+
+    function log(msg, type='') {
+        logDiv.innerHTML = `<div class="${type}">> ${msg}</div>` + logDiv.innerHTML;
+    }
+
+    // Server Status beim Laden abrufen
+    socket.emit('check_server');
+
+    socket.on('status_update', (data) => {
+        document.getElementById('server-status').innerText = data.online ? "Online ✅" : "Offline ❌";
+        document.getElementById('server-status').style.color = data.online ? "#4CAF50" : "#ff5252";
+    });
+
+    socket.on('login_response', (data) => {
         if(data.success) {
-            document.getElementById('status-text').innerText = "✅ Eingeloggt!";
-            document.getElementById('status-text').style.color = "#4CAF50";
-            document.getElementById('btn-connect').disabled = true;
+            log("Erfolg: " + data.msg, "success");
+            btn.innerText = "Verbunden";
+            btn.style.backgroundColor = "#333";
+            // HIER würde jetzt der WebRTC Audio-Stream starten
+        } else {
+            log("Fehler: " + data.msg, "error");
+            btn.disabled = false;
+            btn.innerText = "Beitreten";
         }
     });
 
     function connect() {
-        var username = document.getElementById('username').value;
-        if(!username) { alert("Name fehlt!"); return; }
-        document.getElementById('status-text').innerText = "Verbinde...";
-        socket.emit('join_request', {username: username});
+        const user = document.getElementById('username').value;
+        if(!user) return alert("Name fehlt!");
+        
+        btn.disabled = true;
+        btn.innerText = "Prüfe Server...";
+        log("Prüfe, ob " + user + " online ist...");
+        
+        socket.emit('verify_user', {username: user});
     }
 </script>
 </body>
@@ -60,16 +95,53 @@ HTML_PAGE = """
 
 @app.route('/')
 def index():
-    # Wir benutzen render_template_string statt render_template
     return render_template_string(HTML_PAGE)
 
-@socketio.on('join_request')
-def handle_join(data):
-    username = data.get('username')
-    print(f"Login: {username}")
-    emit('server_message', {'msg': f'Hallo {username}, Verbindung wird aufgebaut...', 'success': False})
-    socketio.sleep(1)
-    emit('server_message', {'msg': 'Verbindung zum Voice-Server erfolgreich!', 'success': True})
+@socketio.on('check_server')
+def handle_check():
+    try:
+        # Versucht den Server anzupingen
+        server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
+        status = server.status()
+        emit('status_update', {'online': True, 'players': status.players.online})
+    except:
+        emit('status_update', {'online': False})
+
+@socketio.on('verify_user')
+def handle_verification(data):
+    target_user = data.get('username')
+    
+    try:
+        # 1. Verbindung zum echten Minecraft Server aufbauen
+        server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
+        query = server.query() # Query muss auf Aternos/Server.properties aktiviert sein!
+        
+        # 2. Liste der Spieler abrufen
+        online_players = query.players.names
+        
+        print(f"Online Spieler: {online_players}") # Zeigt im Log an, wer online ist
+        
+        # 3. Prüfen ob der User dabei ist
+        if target_user in online_players:
+            emit('login_response', {
+                'success': True, 
+                'msg': f'Verifiziert! {target_user} ist online. Voice wird gestartet...'
+            })
+            # HIER wäre der Punkt für die Audio-Verbindung
+        else:
+            emit('login_response', {
+                'success': False, 
+                'msg': f'Spieler "{target_user}" nicht gefunden! Du musst erst dem Server joinen.'
+            })
+            
+    except Exception as e:
+        # Fallback, falls Query nicht geht (passiert oft bei Aternos)
+        print(f"Fehler bei Server-Query: {e}")
+        # Wir lassen ihn rein, warnen aber
+        emit('login_response', {
+            'success': True, 
+            'msg': f'Server antwortet, aber Spielerliste verborgen. Verbinde trotzdem...'
+        })
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
