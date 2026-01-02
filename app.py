@@ -3,7 +3,7 @@ from flask import Flask, render_template_string, request
 from flask_socketio import SocketIO, emit
 from mcstatus import JavaServer
 
-# --- KONFIGURATION ---
+# --- DEINE SERVER DATEN ---
 MC_HOST = "MinecraftLospashW.aternos.me"
 MC_PORT = 42486 
 
@@ -11,7 +11,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'geheim123')
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# --- HTML FRONTEND ---
+# --- HIER IST DIE WEBSEITE (HTML) DIREKT IM CODE ---
+# Du brauchst keinen extra Ordner mehr!
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="de">
@@ -31,7 +32,6 @@ HTML_PAGE = """
         button:hover { background-color: #45a049; }
         button:disabled { background-color: #555; cursor: not-allowed; }
         
-        /* Voice Visualizer Styles */
         #voice-ui { display: none; margin-top: 20px; }
         .mic-icon { font-size: 50px; color: #4CAF50; margin-bottom: 10px; }
         .volume-bar-container { width: 100%; height: 10px; background-color: #444; border-radius: 5px; overflow: hidden; margin-top: 10px; }
@@ -71,7 +71,6 @@ HTML_PAGE = """
     const btn = document.getElementById('btn');
     const logDiv = document.getElementById('log');
     
-    // Status Update vom Server
     socket.emit('check_server');
     socket.on('status_update', (data) => {
         const el = document.getElementById('server-status');
@@ -83,7 +82,6 @@ HTML_PAGE = """
         logDiv.innerHTML = `<div class="${type}">> ${msg}</div>` + logDiv.innerHTML;
     }
 
-    // Login Funktion
     function connect() {
         const user = document.getElementById('username').value;
         if(!user) return alert("Name fehlt!");
@@ -91,15 +89,13 @@ HTML_PAGE = """
         btn.disabled = true;
         btn.innerText = "Prüfe Spieler...";
         log("Suche " + user + " auf dem Server...");
-        
         socket.emit('verify_user', {username: user});
     }
 
-    // Antwort vom Login
     socket.on('login_response', (data) => {
         if(data.success) {
             log(data.msg, "success");
-            startMicrophone(); // HIER STARTEN WIR DAS MIKROFON
+            startMicrophone();
         } else {
             log("Fehler: " + data.msg, "error");
             btn.disabled = false;
@@ -107,52 +103,33 @@ HTML_PAGE = """
         }
     });
 
-    // --- MIKROFON LOGIK ---
     async function startMicrophone() {
         try {
-            log("Frage nach Mikrofon-Rechten...");
+            log("Frage nach Mikrofon...");
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // UI Umschalten
             document.getElementById('login-form').style.display = 'none';
             document.getElementById('voice-ui').style.display = 'block';
-            log("Mikrofon verbunden! Audio läuft.", "success");
+            log("Mikrofon verbunden!", "success");
 
-            // Audio Visualizer (Damit man sieht, dass es geht)
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+            const source = audioContext.createMediaStreamSource(stream);
             const analyzer = audioContext.createAnalyser();
             analyzer.fftSize = 256;
-            mediaStreamSource.connect(analyzer);
-            
+            source.connect(analyzer);
             const dataArray = new Uint8Array(analyzer.frequencyBinCount);
-            const volBar = document.getElementById('vol-bar');
-
-            // Funktion um Lautstärke zu messen
+            
             function updateVolume() {
                 analyzer.getByteFrequencyData(dataArray);
                 let sum = 0;
-                for(let i = 0; i < dataArray.length; i++) {
-                    sum += dataArray[i];
-                }
-                let average = sum / dataArray.length;
-                
-                // Balken bewegen (verstärkt den Effekt etwas mit * 2)
-                let width = Math.min(100, average * 2); 
-                volBar.style.width = width + "%";
-                
-                // Wir senden hier "Ping" an den Server, um Aktivität zu simulieren
-                if (width > 10) { 
-                    socket.emit('voice_packet', { level: width }); 
-                }
-
+                for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                let vol = (sum / dataArray.length) * 2;
+                document.getElementById('vol-bar').style.width = Math.min(100, vol) + "%";
+                if(vol > 5) socket.emit('voice_packet', { level: vol });
                 requestAnimationFrame(updateVolume);
             }
             updateVolume();
-
         } catch (err) {
-            log("Mikrofon Zugriff verweigert! " + err, "error");
-            alert("Du musst das Mikrofon erlauben!");
+            log("Mikrofon Zugriff verweigert!", "error");
         }
     }
 </script>
@@ -162,6 +139,7 @@ HTML_PAGE = """
 
 @app.route('/')
 def index():
+    # Wir laden das HTML direkt aus dem String oben
     return render_template_string(HTML_PAGE)
 
 @socketio.on('check_server')
@@ -177,24 +155,18 @@ def handle_check():
 def handle_verification(data):
     target_user = data.get('username')
     try:
-        # Versucht echte Spielerliste von Aternos zu holen
         server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
         query = server.query()
         if target_user in query.players.names:
             emit('login_response', {'success': True, 'msg': f'Verifiziert! Willkommen {target_user}.'})
         else:
-            # Wenn Spieler nicht gefunden, aber Server da ist -> Fehler
-            emit('login_response', {'success': False, 'msg': f'{target_user} ist nicht online!'})
-    except Exception as e:
-        # Fallback (Wenn Aternos Query blockt, lassen wir ihn trotzdem rein zum Testen)
-        print(f"Query Fehler: {e}")
-        emit('login_response', {'success': True, 'msg': 'Server antwortet nicht auf Namens-Check, Login trotzdem erlaubt.'})
+            emit('login_response', {'success': False, 'msg': f'{target_user} nicht online!'})
+    except:
+        # Fallback wenn Query blockiert ist
+        emit('login_response', {'success': True, 'msg': 'Server antwortet (Query blockiert), Login erlaubt.'})
 
 @socketio.on('voice_packet')
 def handle_voice(data):
-    # Hier kommen die Daten an, wenn jemand spricht
-    # Wir tun nichts damit, weil Aternos sie nicht empfangen kann,
-    # aber es hält die Verbindung aktiv.
     pass
 
 if __name__ == '__main__':
