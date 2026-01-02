@@ -1,12 +1,11 @@
 import os
-from flask import Flask, render_template_string, jsonify, request
+from flask import Flask, render_template_string, jsonify
 
 # --- DEINE SERVER DATEN ---
 MC_HOST = "MinecraftLospashW.aternos.me"
 MC_PORT = 42486 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'lospash_safe_key')
 
 # --- HTML DESIGN ---
 HTML_PAGE = """
@@ -56,9 +55,7 @@ HTML_PAGE = """
     </div>
 
     <script>
-        // Wir holen den Namen jetzt aus den Parametern (?name=...) die das Plugin sendet
         const params = new URLSearchParams(window.location.search);
-        // Das Plugin nennt den Parameter 'name'
         const ign = params.get('name') || "{{ username }}"; 
 
         if(ign && ign !== "None") {
@@ -113,7 +110,8 @@ HTML_PAGE = """
                     document.getElementById('log-msg').innerText = "Du musst auf dem Server sein.";
                 }
             } catch (e) {
-                enableButton(); // Fallback
+                // Fallback bei Fehler: Reinlassen
+                enableButton();
             }
         }
 
@@ -134,11 +132,12 @@ HTML_PAGE = """
 </html>
 """
 
+# --- ROUTEN ---
 @app.route('/')
-def index():
-    return render_template_string(HTML_PAGE, username=None)
+@app.route('/login/<username>')
+def index(username=None):
+    return render_template_string(HTML_PAGE, username=username)
 
-# --- API ---
 @app.route('/api/status')
 def api_status():
     from mcstatus import JavaServer
