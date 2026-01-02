@@ -1,152 +1,36 @@
-import React, { useState, useEffect, useRef } from 'react';
-import io from 'socket.io-client';
+import os
+from flask import Flask, request
+from flask_socketio import SocketIO, emit
 
-const VoiceChat = () => {
-  const [username, setUsername] = useState('');
-  const [status, setStatus] = useState('Warte auf Eingabe...');
-  const [logs, setLogs] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
-  
-  // HIER DEINE PYTHON-BACKEND URL EINFÜGEN (Wenn du es deployt hast)
-  // Wenn du lokal testest: "http://localhost:5000"
-  const BACKEND_URL = "HIER_DEINE_RENDER_URL_EINFÜGEN"; 
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_secret_key')
 
-  const socketRef = useRef(null);
+# WICHTIG: cors_allowed_origins="*" erlaubt deiner React App den Zugriff
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-  const addLog = (msg) => {
-    setLogs(prev => [...prev, msg]);
-    console.log(msg);
-  };
+# Deine Minecraft Server Daten (Nur zur Info)
+MC_HOST = "MinecraftLospashW.aternos.me"
+MC_PORT = 42486
 
-  const connectVoice = () => {
-    if (!username) {
-      alert("Bitte Namen eingeben!");
-      return;
-    }
+@app.route('/')
+def index():
+    return f"Voice Chat Backend läuft. Verbinde deine React App hierher."
 
-    setStatus("Versuche Verbindung...");
-    addLog(`Verbinde zu Backend: ${BACKEND_URL}`);
+@socketio.on('connect')
+def test_connect():
+    print('Client verbunden!')
+    emit('status', {'msg': 'Verbunden mit Python Backend!'})
 
-    // Verbindung zum Python Backend (nicht direkt zu Aternos, das geht im Browser nicht)
-    socketRef.current = io(BACKEND_URL);
+@socketio.on('join_request')
+def handle_join(data):
+    username = data.get('username')
+    print(f"Spieler {username} versucht Beitritt...")
+    # Hier würde normalerweise die Weiterleitung an Aternos passieren
+    # Da Aternos blockt, simulieren wir Erfolg, damit die Website nicht abstürzt
+    emit('status', {'msg': f'Hallo {username}, Backend ist bereit.'})
 
-    socketRef.current.on('connect', () => {
-      setStatus("Verbunden mit Backend!");
-      setIsConnected(true);
-      addLog("WebSocket Verbindung steht.");
-      
-      // Sende den Namen an das Backend
-      socketRef.current.emit('join_request', { username: username });
-    });
-
-    socketRef.current.on('connect_error', (err) => {
-      setStatus("Verbindungsfehler!");
-      addLog("Fehler: " + err.message);
-    });
-
-    socketRef.current.on('disconnect', () => {
-      setStatus("Getrennt.");
-      setIsConnected(false);
-      addLog("Verbindung unterbrochen.");
-    });
-    
-    // Hier würdest du Antworten vom Server empfangen
-    socketRef.current.on('voice_data', (data) => {
-        // Audio verarbeiten...
-    });
-  };
-
-  return (
-    <div style={styles.container}>
-      <div style={styles.box}>
-        <h2>🔊 Simple Voice Chat (React)</h2>
-        <p>Aternos Bridge</p>
-
-        <input
-          style={styles.input}
-          type="text"
-          placeholder="Dein Minecraft Name"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          disabled={isConnected}
-        />
-        <br />
-        <button 
-          style={styles.button} 
-          onClick={connectVoice}
-          disabled={isConnected}
-        >
-          {isConnected ? "Verbunden" : "Verbinden"}
-        </button>
-
-        <div style={{...styles.status, color: isConnected ? 'green' : '#ffcc00'}}>
-          {status}
-        </div>
-      </div>
-
-      <div style={styles.logBox}>
-        <h3>Logs:</h3>
-        {logs.map((log, index) => (
-          <div key={index} style={styles.logItem}>&gt; {log}</div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Einfaches Styling für React
-const styles = {
-  container: {
-    backgroundColor: '#1a1a1a',
-    color: 'white',
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '20px',
-    fontFamily: 'Arial, sans-serif'
-  },
-  box: {
-    backgroundColor: '#333',
-    padding: '20px',
-    borderRadius: '10px',
-    width: '100%',
-    maxWidth: '400px',
-    textAlign: 'center',
-    marginBottom: '20px'
-  },
-  input: {
-    padding: '10px',
-    width: '80%',
-    margin: '10px 0',
-    borderRadius: '5px',
-    border: 'none'
-  },
-  button: {
-    padding: '10px 20px',
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    fontSize: '16px'
-  },
-  status: {
-    marginTop: '20px',
-    fontWeight: 'bold'
-  },
-  logBox: {
-    width: '100%',
-    maxWidth: '600px',
-    textAlign: 'left',
-    fontSize: '12px',
-    color: '#aaa',
-    borderTop: '1px solid #444',
-    paddingTop: '10px'
-  },
-  logItem: {
-    marginBottom: '2px'
-  }
-};
-
-export default VoiceChat;
+if __name__ == '__main__':
+    # WICHTIG: Port muss aus der Umgebungsvariable kommen!
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Starte Server auf Port {port}")
+    socketio.run(app, host='0.0.0.0', port=port)
