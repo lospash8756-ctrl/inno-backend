@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template_string, jsonify, request
 
 # --- DEINE SERVER DATEN ---
 MC_HOST = "MinecraftLospashW.aternos.me"
@@ -56,6 +56,7 @@ HTML_PAGE = """
 
     <script>
         const params = new URLSearchParams(window.location.search);
+        // Holt Namen entweder aus URL ?name= oder aus dem Pfad
         const ign = params.get('name') || "{{ username }}"; 
 
         if(ign && ign !== "None") {
@@ -110,8 +111,7 @@ HTML_PAGE = """
                     document.getElementById('log-msg').innerText = "Du musst auf dem Server sein.";
                 }
             } catch (e) {
-                // Fallback bei Fehler: Reinlassen
-                enableButton();
+                enableButton(); // Fallback
             }
         }
 
