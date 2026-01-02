@@ -6,10 +6,9 @@ MC_HOST = "MinecraftLospashW.aternos.me"
 MC_PORT = 42486 
 
 app = Flask(__name__)
-# Sicherheitsschlüssel (verhindert manche Flask Fehler)
 app.secret_key = os.environ.get('SECRET_KEY', 'lospash_safe_key')
 
-# --- HTML DESIGN (High-End & Stabil) ---
+# --- HTML DESIGN ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="de">
@@ -24,7 +23,6 @@ HTML_PAGE = """
         @keyframes m { 0% {transform:translate(0,0)} 100% {transform:translate(-10%,-10%)} }
         
         .card { background: rgba(20,20,20,0.9); border: 1px solid #333; padding: 40px; border-radius: 20px; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-        
         h1 { font-family: 'Rajdhani'; font-size: 32px; margin: 0; color: #fff; text-shadow: 0 0 20px rgba(0,255,157,0.3); }
         p { color: #888; font-size: 14px; margin-bottom: 25px; }
         
@@ -58,8 +56,10 @@ HTML_PAGE = """
     </div>
 
     <script>
-        // Name aus URL holen (/login/Name)
-        const ign = "{{ username }}"; 
+        // Wir holen den Namen jetzt aus den Parametern (?name=...) die das Plugin sendet
+        const params = new URLSearchParams(window.location.search);
+        // Das Plugin nennt den Parameter 'name'
+        const ign = params.get('name') || "{{ username }}"; 
 
         if(ign && ign !== "None") {
             document.getElementById('username').innerText = ign;
@@ -67,7 +67,6 @@ HTML_PAGE = """
             document.getElementById('head').style.display = "block";
         }
 
-        // 1. API Abfrage: Ist der Server online?
         async function checkServer() {
             try {
                 const response = await fetch('/api/status');
@@ -95,7 +94,6 @@ HTML_PAGE = """
             }
         }
 
-        // 2. API Abfrage: Ist der User drauf?
         async function checkUser(name) {
             document.getElementById('user-check').innerText = "Prüfe Spieler...";
             try {
@@ -115,8 +113,7 @@ HTML_PAGE = """
                     document.getElementById('log-msg').innerText = "Du musst auf dem Server sein.";
                 }
             } catch (e) {
-                // Fallback: Wenn API Fehler, lassen wir ihn trotzdem rein
-                enableButton();
+                enableButton(); // Fallback
             }
         }
 
@@ -131,27 +128,21 @@ HTML_PAGE = """
             window.location.href = "https://client.openaudiomc.net/" + window.location.search;
         }
 
-        // Starten
         checkServer();
     </script>
 </body>
 </html>
 """
 
-# --- ROUTEN ---
-
 @app.route('/')
-@app.route('/login/<username>')
-def index(username=None):
-    return render_template_string(HTML_PAGE, username=username)
+def index():
+    return render_template_string(HTML_PAGE, username=None)
 
-# --- API (Stabil & Ohne Sockets) ---
-
+# --- API ---
 @app.route('/api/status')
 def api_status():
     from mcstatus import JavaServer
     try:
-        # Kurzer Timeout (2s), damit die Seite nicht hängt!
         server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
         status = server.status()
         return jsonify({'online': True, 'players': status.players.online})
@@ -163,15 +154,13 @@ def api_verify(username):
     from mcstatus import JavaServer
     try:
         server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
-        query = server.query() # Query muss auf Aternos an sein!
+        query = server.query()
         if username in query.players.names:
             return jsonify({'verified': True})
         else:
             return jsonify({'verified': False})
     except:
-        # Wenn Query fehlschlägt (oft bei Aternos), geben wir TRUE zurück,
-        # damit der Spieler nicht blockiert wird.
-        return jsonify({'verified': True}) 
+        return jsonify({'verified': True})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
