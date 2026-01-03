@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lospash Voice</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* --- HIGH END DESIGN --- */
+        body {
+            background-color: #050505;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Animierter Hintergrund */
+        .bg {
+            position: absolute; width: 200%; height: 200%;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 255, 136, 0.08), transparent 40%);
+            animation: move 20s linear infinite; z-index: -1;
+        }
+        @keyframes move { 0% {transform: translate(0,0);} 100% {transform: translate(-5%, -5%);} }
+
+        /* Die Karte */
+        .card {
+            background: rgba(20, 25, 30, 0.95);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 380px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+            position: relative;
+        }
+
+        /* Neon Linie */
+        .line { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #00ff88; box-shadow: 0 0 15px #00ff88; }
+
+        h1 { font-family: 'Rajdhani'; font-size: 32px; margin: 10px 0; color: #fff; letter-spacing: 1px; text-transform: uppercase; }
+        
+        /* Avatar Box */
+        .avatar-box { width: 80px; height: 80px; margin: 25px auto; position: relative; }
+        .avatar { width: 100%; height: 100%; border-radius: 15px; background: #222; border: 2px solid #333; object-fit: cover; }
+        
+        .username { font-size: 22px; font-weight: 700; margin-bottom: 5px; color: #fff; }
+        .status { font-size: 12px; color: #888; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Der Button */
+        .btn {
+            width: 100%; padding: 18px; background: #2a3038; color: #666; 
+            border: none; border-radius: 10px; font-weight: 700; font-size: 16px; 
+            cursor: pointer; transition: 0.3s; text-transform: uppercase;
+        }
+        
+        /* Wenn bereit (Grün) */
+        .btn-ready {
+            background: #00ff88; color: #000;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-ready:hover { transform: scale(1.02); box-shadow: 0 0 50px rgba(0, 255, 136, 0.5); }
+        
+        @keyframes pop { 0% {transform: scale(0.9); opacity: 0;} 100% {transform: scale(1); opacity: 1;} }
+    </style>
+</head>
+<body>
+
+    <div class="bg"></div>
+
+    <div class="card">
+        <div class="line"></div>
+        <h1>Lospash Voice</h1>
+        
+        <div class="avatar-box">
+            <img id="head" src="" class="avatar" style="display:none">
+        </div>
+
+        <div id="username" class="username">Gast</div>
+        <div id="status" class="status">Initialisiere...</div>
+        
+        <button id="btn" class="btn" onclick="connect()">Lade...</button>
+    </div>
+
+    <script>
+        // 1. Daten aus der URL lesen, die das Plugin sendet
+        const params = new URLSearchParams(window.location.search);
+        // Das Plugin nutzt meist 'name' oder 'ign'
+        let ign = params.get('name') || params.get('ign');
+
+        // Avatar Name bereinigen (Punkte weg für Bedrock)
+        let imgName = ign;
+        if(ign && ign.startsWith('.')) {
+            imgName = ign.substring(1);
+        }
+
+        // GUI Update
+        if(ign) {
+            document.getElementById('username').innerText = ign;
+            document.getElementById('head').src = "https://crafatar.com/avatars/" + imgName + "?overlay";
+            document.getElementById('head').style.display = "block";
+            
+            // Sofort grün schalten (Fake Check)
+            activateButton();
+        } else {
+            // Fallback, wenn kein Name da ist
+            document.getElementById('username').innerText = "Spieler";
+            activateButton();
+        }
+
+        function activateButton() {
+            setTimeout(() => {
+                document.getElementById('status').innerHTML = "SYSTEM BEREIT";
+                const btn = document.getElementById('btn');
+                btn.className = "btn btn-ready";
+                btn.innerText = "JETZT VERBINDEN";
+            }, 500); // Kurze Verzögerung für den Effekt
+        }
+
+        function connect() {
+            const btn = document.getElementById('btn');
+            btn.innerText = "LEITE WEITER...";
+            
+            // WICHTIG: Wir nehmen den exakten Token aus der URL mit!
+            // Das sorgt dafür, dass der Link GÜLTIG bleibt.
+            window.location.href = "https://client.openaudiomc.net/" + window.location.search;
+        }
+    </script>
+</body>
+</html>
