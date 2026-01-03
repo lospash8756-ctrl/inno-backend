@@ -3,7 +3,7 @@ from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
-# --- HTML DESIGN ---
+# --- HIGH END DESIGN (Ohne Absturz-Risiko) ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="de">
@@ -14,18 +14,26 @@ HTML_PAGE = """
     <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         body { background: #050505; color: white; font-family: 'Inter', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; overflow: hidden; }
-        .bg { position: absolute; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0, 255, 136, 0.08), transparent 40%); animation: m 15s linear infinite; z-index: -1; }
+        
+        /* Hintergrund */
+        .bg { position: absolute; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0, 255, 136, 0.08), transparent 40%); animation: m 20s linear infinite; z-index: -1; }
         @keyframes m { 0% {transform:translate(0,0)} 100% {transform:translate(-10%,-10%)} }
         
+        /* Karte */
         .card { background: rgba(20, 25, 30, 0.95); border: 1px solid rgba(255,255,255,0.1); padding: 40px; border-radius: 20px; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 0 50px rgba(0,0,0,0.6); position: relative; }
         .line { position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, transparent, #00ff88, transparent); box-shadow: 0 0 15px #00ff88; }
+        
         h1 { font-family: 'Rajdhani'; font-size: 32px; margin: 10px 0; color: #fff; letter-spacing: 1px; }
         
+        /* Avatar */
         .avatar-box { width: 80px; height: 80px; margin: 20px auto; position: relative; }
         .avatar { width: 100%; height: 100%; border-radius: 15px; background: #222; border: 2px solid #333; }
+        
         .username { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
         .status { font-size: 12px; color: #666; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; }
-        
+        .verified { color: #00ff88; font-weight: bold; }
+
+        /* Button */
         .btn { width: 100%; padding: 18px; background: #2a3038; color: #888; border: none; border-radius: 10px; font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
         .btn-ready { background: #00ff88; color: #000; box-shadow: 0 0 30px rgba(0, 255, 136, 0.3); }
         .btn-ready:hover { transform: scale(1.02); }
@@ -48,11 +56,11 @@ HTML_PAGE = """
     </div>
 
     <script>
-        // Wir nehmen ALLES aus der URL (Token, Namen, ID)
+        // Wir holen uns die Daten, die das Plugin automatisch schickt
         const params = new URLSearchParams(window.location.search);
-        let ign = params.get('name');
+        let ign = params.get('name'); // Das Plugin nennt es 'name'
 
-        // Avatar Fix
+        // Bedrock Fix (Punkt entfernen für das Bild)
         let imgName = ign;
         if(ign && ign.startsWith('.')) imgName = ign.substring(1);
 
@@ -62,19 +70,23 @@ HTML_PAGE = """
             document.getElementById('head').style.display = "block";
         }
 
-        // Automatische Aktivierung (Fake Check für Coolness)
+        // Fake-Ladesequenz (Sieht professionell aus, stürzt aber nie ab)
         setTimeout(() => {
-            document.getElementById('status').innerHTML = "BEREIT ZUM VERBINDEN";
+            document.getElementById('status').innerText = "Warte auf Verbindung...";
+        }, 500);
+
+        setTimeout(() => {
+            document.getElementById('status').innerHTML = "BEREIT ZUM VERBINDEN <span class='verified'>✔</span>";
             const btn = document.getElementById('btn');
             btn.className = "btn btn-ready";
             btn.innerText = "AUDIO STARTEN";
-        }, 800);
+        }, 1200);
 
         function go() {
-            // WICHTIG: Wir leiten 1:1 weiter.
-            // location.search enthält ?session=...&name=...
-            // location.hash enthält #... (falls vorhanden)
-            const target = "https://client.openaudiomc.net/" + window.location.search + window.location.hash;
+            // DAS IST DER WICHTIGSTE TEIL:
+            // Wir nehmen den Original-Link (mit Token) und leiten weiter.
+            // Dadurch bleibt der Link gültig!
+            const target = "https://client.openaudiomc.net/" + window.location.search;
             window.location.href = target;
         }
     </script>
