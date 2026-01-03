@@ -7,7 +7,7 @@ MC_PORT = 42486
 
 app = Flask(__name__)
 
-# --- HTML DESIGN ---
+# --- HTML DESIGN (High-End) ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="de">
@@ -21,21 +21,19 @@ HTML_PAGE = """
         .bg { position: absolute; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0, 255, 157, 0.1), transparent 40%); animation: m 20s linear infinite; z-index: -1; }
         @keyframes m { 0% {transform:translate(0,0)} 100% {transform:translate(-10%,-10%)} }
         
-        .card { background: rgba(20,20,20,0.9); border: 1px solid #333; padding: 40px; border-radius: 20px; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        .card { background: rgba(20,20,20,0.9); border: 1px solid #333; padding: 30px; border-radius: 20px; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
         h1 { font-family: 'Rajdhani'; font-size: 32px; margin: 0; color: #fff; text-shadow: 0 0 20px rgba(0,255,157,0.3); }
         p { color: #888; font-size: 14px; margin-bottom: 25px; }
         
-        .badge { background: #111; padding: 6px 12px; border-radius: 20px; font-size: 12px; display: inline-block; margin-bottom: 20px; border: 1px solid #333; transition: 0.3s; }
+        .badge { background: #111; padding: 6px 12px; border-radius: 20px; font-size: 12px; display: inline-block; margin-bottom: 20px; border: 1px solid #333; }
         .online { color: #00ff9d; border-color: #00ff9d; } 
         .offline { color: #ff4444; border-color: #ff4444; }
         
         .avatar { width: 64px; height: 64px; border-radius: 12px; margin: 0 auto 15px auto; display: block; background: #222; border: 2px solid #333; }
         
-        .btn { width: 100%; padding: 16px; background: #333; color: #666; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: not-allowed; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn { width: 100%; padding: 16px; background: #333; color: #666; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: not-allowed; transition: 0.3s; text-transform: uppercase; }
         .btn-active { background: #00ff9d; color: #000; cursor: pointer; box-shadow: 0 0 25px rgba(0, 255, 157, 0.4); }
-        .btn-active:hover { transform: scale(1.02); }
-
-        .log { font-size: 11px; color: #555; margin-top: 15px; font-family: monospace; }
+        
         .verified { color: #00ff9d; font-weight: bold; }
     </style>
 </head>
@@ -51,17 +49,21 @@ HTML_PAGE = """
         <div id="user-check" style="font-size:12px; color:#666; margin-bottom:20px;">Warte auf Server...</div>
         
         <button id="btn" class="btn" onclick="go()" disabled>Lade...</button>
-        <div class="log" id="log-msg">Initialisiere System...</div>
     </div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        // Holt Namen entweder aus URL ?name= oder aus dem Pfad
-        const ign = params.get('name') || "{{ username }}"; 
+        let ign = params.get('name') || "{{ username }}"; 
+
+        // Bedrock Fix: Wenn Name mit "." anfängt, für Avatar entfernen (Crafatar mag keine Punkte)
+        let avatarName = ign;
+        if(ign && ign.startsWith('.')) {
+            avatarName = ign.substring(1);
+        }
 
         if(ign && ign !== "None") {
             document.getElementById('username').innerText = ign;
-            document.getElementById('head').src = "https://crafatar.com/avatars/" + ign + "?overlay";
+            document.getElementById('head').src = "https://crafatar.com/avatars/" + avatarName + "?overlay";
             document.getElementById('head').style.display = "block";
         }
 
@@ -74,7 +76,6 @@ HTML_PAGE = """
                 if(data.online) {
                     badge.innerText = "● Online (" + data.players + ")";
                     badge.classList.add('online');
-                    document.getElementById('log-msg').innerText = "Server verbunden.";
                     
                     if(ign && ign !== "None") checkUser(ign);
                     else {
@@ -85,30 +86,25 @@ HTML_PAGE = """
                     badge.innerText = "● Offline";
                     badge.classList.add('offline');
                     document.getElementById('btn').innerText = "Server Offline";
-                    document.getElementById('log-msg').innerText = "Aternos Server starten!";
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function checkUser(name) {
             document.getElementById('user-check').innerText = "Prüfe Spieler...";
             try {
-                const response = await fetch('/api/verify/' + name);
+                // Name kodieren für URL (Wichtig für Bedrock Punkte!)
+                const response = await fetch('/api/verify/' + encodeURIComponent(name));
                 const data = await response.json();
                 
                 const btn = document.getElementById('btn');
                 if(data.verified) {
                     document.getElementById('user-check').innerText = "Verifiziert ✓";
                     document.getElementById('user-check').classList.add('verified');
-                    btn.disabled = false;
-                    btn.classList.add('btn-active');
-                    btn.innerText = "JETZT VERBINDEN";
+                    enableButton();
                 } else {
                     document.getElementById('user-check').innerText = "Nicht gefunden ❌";
                     btn.innerText = "Nicht Online";
-                    document.getElementById('log-msg').innerText = "Du musst auf dem Server sein.";
                 }
             } catch (e) {
                 enableButton(); // Fallback
@@ -154,11 +150,23 @@ def api_verify(username):
     try:
         server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
         query = server.query()
-        if username in query.players.names:
-            return jsonify({'verified': True})
-        else:
-            return jsonify({'verified': False})
+        players = query.players.names
+        
+        # --- BEDROCK INTELLIGENZ ---
+        # 1. Exakter Match
+        if username in players: return jsonify({'verified': True})
+        
+        # 2. Wenn der Name einen Punkt hat (.Lospash), prüfen wir "Lospash"
+        if username.startswith('.') and username[1:] in players:
+             return jsonify({'verified': True})
+             
+        # 3. Wenn der Name KEINEN Punkt hat, prüfen wir ".Lospash"
+        if ("." + username) in players:
+             return jsonify({'verified': True})
+
+        return jsonify({'verified': False})
     except:
+        # Bei Fehler lassen wir rein (besser als blockieren)
         return jsonify({'verified': True})
 
 if __name__ == '__main__':
