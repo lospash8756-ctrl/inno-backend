@@ -1,128 +1,161 @@
 import os
 from flask import Flask, render_template_string, jsonify, request
 
-# --- DEINE SERVER DATEN ---
+# --- SERVER KONFIGURATION ---
 MC_HOST = "MinecraftLospashW.aternos.me"
 MC_PORT = 42486 
 
 app = Flask(__name__)
 
-# --- HTML DESIGN (High-End) ---
+# --- HTML DESIGN (Modern & GUI Look) ---
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lospash Voice</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>Lospash Audio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { background: #050505; color: white; font-family: 'Inter', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; overflow: hidden; }
-        .bg { position: absolute; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0, 255, 157, 0.1), transparent 40%); animation: m 20s linear infinite; z-index: -1; }
-        @keyframes m { 0% {transform:translate(0,0)} 100% {transform:translate(-10%,-10%)} }
+        body { background: #0a0a0f; color: white; font-family: 'Inter', sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; overflow: hidden; }
         
-        .card { background: rgba(20,20,20,0.9); border: 1px solid #333; padding: 30px; border-radius: 20px; text-align: center; width: 90%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-        h1 { font-family: 'Rajdhani'; font-size: 32px; margin: 0; color: #fff; text-shadow: 0 0 20px rgba(0,255,157,0.3); }
-        p { color: #888; font-size: 14px; margin-bottom: 25px; }
+        /* Hintergrund Effekt */
+        .bg { position: absolute; width: 200%; height: 200%; background: radial-gradient(circle at 50% 50%, rgba(0, 255, 136, 0.05), transparent 50%); animation: pulse 10s infinite; z-index: -1; }
+        @keyframes pulse { 0% {opacity:0.5;} 50% {opacity:1;} 100% {opacity:0.5;} }
         
-        .badge { background: #111; padding: 6px 12px; border-radius: 20px; font-size: 12px; display: inline-block; margin-bottom: 20px; border: 1px solid #333; }
-        .online { color: #00ff9d; border-color: #00ff9d; } 
-        .offline { color: #ff4444; border-color: #ff4444; }
+        /* GUI Karte */
+        .gui-card { 
+            background: rgba(20, 25, 30, 0.95); 
+            border: 1px solid rgba(255,255,255,0.1); 
+            padding: 40px; 
+            border-radius: 16px; 
+            width: 90%; 
+            max-width: 360px; 
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            position: relative;
+        }
         
-        .avatar { width: 64px; height: 64px; border-radius: 12px; margin: 0 auto 15px auto; display: block; background: #222; border: 2px solid #333; }
+        /* Dekorations-Linie oben */
+        .gui-line { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: linear-gradient(90deg, transparent, #00ff88, transparent); }
+
+        h1 { font-family: 'Rajdhani'; font-size: 28px; margin: 0 0 5px 0; letter-spacing: 1px; color: #fff; }
+        .sub { color: #666; font-size: 13px; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Status Badge */
+        .badge { background: #151a20; border: 1px solid #333; padding: 5px 12px; border-radius: 50px; font-size: 11px; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: #444; }
+        .online .dot { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
         
-        .btn { width: 100%; padding: 16px; background: #333; color: #666; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: not-allowed; transition: 0.3s; text-transform: uppercase; }
-        .btn-active { background: #00ff9d; color: #000; cursor: pointer; box-shadow: 0 0 25px rgba(0, 255, 157, 0.4); }
-        
-        .verified { color: #00ff9d; font-weight: bold; }
+        /* Avatar & User */
+        .avatar { width: 70px; height: 70px; border-radius: 12px; background: #222; margin: 0 auto 10px auto; border: 2px solid #333; transition: 0.3s; }
+        .username { font-size: 18px; font-weight: 700; color: #fff; }
+        .status-text { font-size: 12px; color: #555; margin-bottom: 25px; }
+        .verified { color: #00ff88; }
+
+        /* Button */
+        .btn { width: 100%; padding: 15px; background: #2a3038; color: #777; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; text-transform: uppercase; cursor: not-allowed; transition: 0.3s; letter-spacing: 1px; }
+        .btn-active { background: #00ff88; color: #000; cursor: pointer; box-shadow: 0 5px 20px rgba(0, 255, 136, 0.2); }
+        .btn-active:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0, 255, 136, 0.3); }
+
     </style>
 </head>
 <body>
     <div class="bg"></div>
-    <div class="card">
-        <div class="badge" id="status">Lade Status...</div>
-        <h1>Lospash Voice</h1>
-        <p>Premium Audio Gateway</p>
+    <div class="gui-card">
+        <div class="gui-line"></div>
         
+        <div class="badge" id="server-badge">
+            <div class="dot"></div><span id="server-text">System wird geladen...</span>
+        </div>
+
+        <h1>LOSPASH</h1>
+        <div class="sub">Secure Audio Interface</div>
+
         <img id="head" src="" class="avatar" style="display:none">
-        <div id="username" style="font-weight:bold; font-size:18px; margin-bottom:5px;">Gast</div>
-        <div id="user-check" style="font-size:12px; color:#666; margin-bottom:20px;">Warte auf Server...</div>
-        
+        <div id="username" class="username">Gast</div>
+        <div id="user-status" class="status-text">Initialisiere...</div>
+
         <button id="btn" class="btn" onclick="go()" disabled>Lade...</button>
     </div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
+        // Holt Namen (unterstützt Plugin Parameter UND Pfad)
         let ign = params.get('name') || "{{ username }}"; 
 
-        // Bedrock Fix: Wenn Name mit "." anfängt, für Avatar entfernen (Crafatar mag keine Punkte)
-        let avatarName = ign;
-        if(ign && ign.startsWith('.')) {
-            avatarName = ign.substring(1);
+        // Fix für Bedrock Avatare (Punkt entfernen für das Bild)
+        let imgName = ign;
+        if(ign && ign.startsWith('.') && ign !== "None") {
+            imgName = ign.substring(1);
         }
 
         if(ign && ign !== "None") {
             document.getElementById('username').innerText = ign;
-            document.getElementById('head').src = "https://crafatar.com/avatars/" + avatarName + "?overlay";
+            document.getElementById('head').src = "https://crafatar.com/avatars/" + imgName + "?overlay";
             document.getElementById('head').style.display = "block";
+        } else {
+             document.getElementById('user-status').innerText = "Warte auf Link...";
         }
 
-        async function checkServer() {
+        // 1. Server Prüfung
+        async function init() {
             try {
-                const response = await fetch('/api/status');
-                const data = await response.json();
+                const res = await fetch('/api/status');
+                const data = await res.json();
                 
-                const badge = document.getElementById('status');
+                const badge = document.getElementById('server-badge');
                 if(data.online) {
-                    badge.innerText = "● Online (" + data.players + ")";
                     badge.classList.add('online');
+                    document.getElementById('server-text').innerText = "ONLINE (" + data.players + ")";
                     
-                    if(ign && ign !== "None") checkUser(ign);
+                    if(ign && ign !== "None") verify(ign);
                     else {
-                        document.getElementById('btn').innerText = "Kein Name";
-                        document.getElementById('user-check').innerText = "Bitte Link im Spiel nutzen";
+                        document.getElementById('btn').innerText = "Kein Spielername";
+                        document.getElementById('user-status').innerText = "Nutze /audio im Spiel";
                     }
                 } else {
-                    badge.innerText = "● Offline";
-                    badge.classList.add('offline');
+                    document.getElementById('server-text').innerText = "OFFLINE";
                     document.getElementById('btn').innerText = "Server Offline";
+                    document.getElementById('user-status').innerText = "Bitte Server starten";
                 }
-            } catch (e) { console.error(e); }
+            } catch(e) { console.log(e); }
         }
 
-        async function checkUser(name) {
-            document.getElementById('user-check').innerText = "Prüfe Spieler...";
+        // 2. User Prüfung (Mit Bedrock Support)
+        async function verify(name) {
+            document.getElementById('user-status').innerText = "Prüfe Berechtigung...";
             try {
-                // Name kodieren für URL (Wichtig für Bedrock Punkte!)
-                const response = await fetch('/api/verify/' + encodeURIComponent(name));
-                const data = await response.json();
+                // encodeURIComponent wichtig für Sonderzeichen/Punkte
+                const res = await fetch('/api/verify/' + encodeURIComponent(name));
+                const data = await res.json();
                 
-                const btn = document.getElementById('btn');
                 if(data.verified) {
-                    document.getElementById('user-check').innerText = "Verifiziert ✓";
-                    document.getElementById('user-check').classList.add('verified');
-                    enableButton();
+                    document.getElementById('user-status').innerHTML = "Verifiziert <span class='verified'>✔</span>";
+                    enableBtn();
                 } else {
-                    document.getElementById('user-check').innerText = "Nicht gefunden ❌";
-                    btn.innerText = "Nicht Online";
+                    document.getElementById('user-status').innerText = "Spieler nicht gefunden";
+                    document.getElementById('btn').innerText = "Nicht Online";
                 }
-            } catch (e) {
-                enableButton(); // Fallback
+            } catch(e) {
+                // Fallback bei Fehler -> Reinlassen
+                enableBtn();
             }
         }
 
-        function enableButton() {
+        function enableBtn() {
             const btn = document.getElementById('btn');
             btn.disabled = false;
             btn.classList.add('btn-active');
-            btn.innerText = "JETZT VERBINDEN";
+            btn.innerText = "STARTEN";
         }
 
         function go() {
+            // Weiterleitung zum Audio Client
             window.location.href = "https://client.openaudiomc.net/" + window.location.search;
         }
 
-        checkServer();
+        init();
     </script>
 </body>
 </html>
@@ -138,6 +171,7 @@ def index(username=None):
 def api_status():
     from mcstatus import JavaServer
     try:
+        # Timeout verhindert langes Laden
         server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
         status = server.status()
         return jsonify({'online': True, 'players': status.players.online})
@@ -150,23 +184,19 @@ def api_verify(username):
     try:
         server = JavaServer.lookup(f"{MC_HOST}:{MC_PORT}")
         query = server.query()
-        players = query.players.names
+        p_list = query.players.names
         
-        # --- BEDROCK INTELLIGENZ ---
-        # 1. Exakter Match
-        if username in players: return jsonify({'verified': True})
-        
-        # 2. Wenn der Name einen Punkt hat (.Lospash), prüfen wir "Lospash"
-        if username.startswith('.') and username[1:] in players:
-             return jsonify({'verified': True})
-             
-        # 3. Wenn der Name KEINEN Punkt hat, prüfen wir ".Lospash"
-        if ("." + username) in players:
-             return jsonify({'verified': True})
+        # Bedrock Check Logik
+        # 1. Ist "Name" da?
+        if username in p_list: return jsonify({'verified': True})
+        # 2. Ist ".Name" da? (Wenn Anfrage ohne Punkt kam)
+        if ("." + username) in p_list: return jsonify({'verified': True})
+        # 3. Ist "Name" da? (Wenn Anfrage mit Punkt kam)
+        if username.startswith('.') and username[1:] in p_list: return jsonify({'verified': True})
 
         return jsonify({'verified': False})
     except:
-        # Bei Fehler lassen wir rein (besser als blockieren)
+        # Bei Fehler (Query disabled etc.) -> Immer True
         return jsonify({'verified': True})
 
 if __name__ == '__main__':
